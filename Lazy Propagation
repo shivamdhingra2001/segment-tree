@@ -1,0 +1,128 @@
+#include <iostream>
+#include <vector>
+using namespace std;
+
+class SegmentTree {
+private:
+    vector<int> tree, lazy;
+    int n;
+
+    // Function to propagate the lazy updates
+    void propagate(int node, int start, int end) {
+        if (lazy[node] != 0) { // There's a pending update for this node
+            // Apply the pending update
+            tree[node] += (end - start + 1) * lazy[node]; // Update the current node (sum-based)
+            
+            // Propagate the lazy update to the children (not necessary for leaf nodes)
+            if (start != end) {
+                lazy[2 * node + 1] += lazy[node]; // Left child
+                lazy[2 * node + 2] += lazy[node]; // Right child
+            }
+
+            // Clear the lazy value for the current node
+            lazy[node] = 0;
+        }
+    }
+
+    // Function to build the segment tree
+    void build(const vector<int>& arr, int node, int start, int end) {
+        if (start == end) {
+            // Leaf node will have a single element
+            tree[node] = arr[start];
+        } else {
+            int mid = (start + end) / 2;
+            // Recur for left and right children
+            build(arr, 2 * node + 1, start, mid);
+            build(arr, 2 * node + 2, mid + 1, end);
+            // Internal node will have the sum of both children
+            tree[node] = tree[2 * node + 1] + tree[2 * node + 2];
+        }
+    }
+
+    // Function to update a range of values
+    void updateRange(int node, int start, int end, int l, int r, int val) {
+        // Propagate any pending updates before working on the current node
+        propagate(node, start, end);
+
+        // If the current range is outside the update range
+        if (r < start || end < l)
+            return;
+
+        // If the current range is completely inside the update range
+        if (l <= start && end <= r) {
+            // Update the current node and mark children for lazy propagation
+            tree[node] += (end - start + 1) * val; // Sum-based update
+            if (start != end) {
+                lazy[2 * node + 1] += val; // Mark left child for lazy update
+                lazy[2 * node + 2] += val; // Mark right child for lazy update
+            }
+            return;
+        }
+
+        // Otherwise, split the range and recur for both children
+        int mid = (start + end) / 2;
+        updateRange(2 * node + 1, start, mid, l, r, val);
+        updateRange(2 * node + 2, mid + 1, end, l, r, val);
+        // After updating children, update the current node
+        tree[node] = tree[2 * node + 1] + tree[2 * node + 2];
+    }
+
+    // Function to query the segment tree
+    int queryRange(int node, int start, int end, int l, int r) {
+        // Propagate any pending updates before working on the current node
+        propagate(node, start, end);
+
+        // If the current range is outside the query range
+        if (r < start || end < l)
+            return 0; // Return neutral value for sum queries
+
+        // If the current range is completely inside the query range
+        if (l <= start && end <= r)
+            return tree[node];
+
+        // Otherwise, split the range and query both children
+        int mid = (start + end) / 2;
+        int left_query = queryRange(2 * node + 1, start, mid, l, r);
+        int right_query = queryRange(2 * node + 2, mid + 1, end, l, r);
+        return left_query + right_query;
+    }
+
+public:
+    // Constructor to initialize the segment tree and lazy array
+    SegmentTree(const vector<int>& arr) {
+        n = arr.size();
+        tree.resize(4 * n); // Segment tree size
+        lazy.resize(4 * n, 0); // Lazy array initialized to 0
+        build(arr, 0, 0, n - 1);
+    }
+
+    // Function to perform a range update
+    void updateRange(int l, int r, int val) {
+        updateRange(0, 0, n - 1, l, r, val);
+    }
+
+    // Function to perform a range query
+    int queryRange(int l, int r) {
+        return queryRange(0, 0, n - 1, l, r);
+    }
+};
+
+int main() {
+    // Example usage:
+    vector<int> arr = {1, 3, 5, 7, 9, 11};
+    SegmentTree segTree(arr);
+
+    // Query the sum in the range [1, 3]
+    cout << "Sum in range [1, 3]: " << segTree.queryRange(1, 3) << endl;
+
+    // Update range [1, 3] by adding 10 to each element
+    segTree.updateRange(1, 3, 10);
+
+    // Query again after the range update
+    cout << "Sum in range [1, 3] after update: " << segTree.queryRange(1, 3) << endl;
+
+    // Query the sum in the range [0, 5]
+    cout << "Sum in range [0, 5]: " << segTree.queryRange(0, 5) << endl;
+
+    return 0;
+}
