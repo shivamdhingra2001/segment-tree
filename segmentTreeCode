@@ -1,0 +1,96 @@
+#include <iostream>
+#include <vector>
+using namespace std;
+
+class SegmentTree {
+private: 
+    vector<int> tree;
+    int n;  // Size of the original array
+
+    // Function to build the segment tree
+    void build(const vector<int>& arr, int node, int start, int end) {
+        if (start == end) {
+            // Leaf node will have a single element
+            tree[node] = arr[start];
+        } else {
+            int mid = (start + end) / 2;
+            // Recur for left and right children
+            build(arr, 2 * node + 1, start, mid);
+            build(arr, 2 * node + 2, mid + 1, end);
+            // Internal node will have the sum or min/max of both children
+            tree[node] = tree[2 * node + 1] + tree[2 * node + 2];
+        }
+    }
+
+    // Function to update the segment tree
+    void update(int node, int start, int end, int idx, int val) {
+        if (start == end) {
+            // Leaf node
+            tree[node] = val;
+        } else {
+            int mid = (start + end) / 2;
+            if (start <= idx && idx <= mid) {
+                // If idx is in the left child
+                update(2 * node + 1, start, mid, idx, val);
+            } else {
+                // If idx is in the right child
+                update(2 * node + 2, mid + 1, end, idx, val);
+            }
+            // Internal node will have the sum or min/max of both children
+            tree[node] = tree[2 * node + 1] + tree[2 * node + 2];
+        }
+    }
+
+    // Function to query the segment tree
+    int query(int node, int start, int end, int l, int r) {
+        if (r < start || end < l) {
+            // Range represented by a node is outside the query range
+            return 0; // Or infinity/minimum for min/max query
+        }
+        if (l <= start && end <= r) {
+            // Range represented by a node is completely inside the query range
+            return tree[node];
+        }
+        // Range represented by a node is partially inside and partially outside the query range
+        int mid = (start + end) / 2;
+        int left_query = query(2 * node + 1, start, mid, l, r);
+        int right_query = query(2 * node + 2, mid + 1, end, l, r);
+        // Combine results from left and right children
+        return left_query + right_query; // Modify this operation based on the problem
+    }
+
+public:
+    // Constructor to initialize the segment tree
+    SegmentTree(const vector<int>& arr) {
+        n = arr.size();
+        tree.resize(4 * n); // Maximum size of the segment tree
+        build(arr, 0, 0, n - 1);
+    }
+
+    // Function to perform an update on the original array
+    void update(int idx, int val) {
+        update(0, 0, n - 1, idx, val);
+    }
+
+    // Function to perform a range query
+    int query(int l, int r) {
+        return query(0, 0, n - 1, l, r);
+    }
+};
+
+int main() {
+    // Example usage:
+    vector<int> arr = {1, 3, 5, 7, 9, 11};
+    SegmentTree segTree(arr);
+
+    // Query the sum in the range [1, 3]
+    cout << "Sum in range [1, 3]: " << segTree.query(1, 3) << endl;
+
+    // Update index 1 to value 10
+    segTree.update(1, 10);
+
+    // Query again after the update
+    cout << "Sum in range [1, 3] after update: " << segTree.query(1, 3) << endl;
+
+    return 0;
+}
